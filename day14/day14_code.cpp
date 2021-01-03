@@ -6,7 +6,7 @@
 #include <string>
 #include <cmath>
 
-std::pair<int, long> parse_mem(std::string mem_com){
+std::pair<long, long> parse_mem(std::string mem_com){
 	int address;
 	int value;
 
@@ -67,25 +67,51 @@ std::string apply_mask(std::string val, std::string mask){
 	std::string masked_val(val);
 
 	for(auto i = 0 ; i < mask.size() ; i++){
-		if(mask[i] != 'X')
+		if(mask[i] != '0')
 			masked_val[i] = mask[i];
 	}
 
 	return masked_val;
 }
 
+int X_count(std::string str){
+	int count = 0;
+	for(auto ch : str)
+		if (ch == 'X')
+			count++;
+	return count;
+}
+
+void floating_addresses(std::string floating_address, std::vector<std::string>& floating_addresses_list){
+
+	if (X_count(floating_address) == 0){
+		floating_addresses_list.push_back(floating_address);
+		return;
+	}
+
+	int ind = floating_address.find('X');
+	if (ind != std::string::npos){
+		floating_address[ind] = '0';
+		floating_addresses(floating_address, floating_addresses_list);
+		floating_address[ind] = '1';
+		floating_addresses(floating_address, floating_addresses_list);
+	}
+
+	return;
+}
+
+
+
 int main(){
 
 	std::ifstream infile;
 	infile.open("day_14_input.txt");
 
-	std::map<int, unsigned long long> memory;
+	std::map<long long, unsigned long long> memory;
 	std::string line;
 
 	std::string cat;
 	std::string mask;
-
-	std::vector<int> address_list;
 
 	while(std::getline(infile, line)){
 		
@@ -95,21 +121,28 @@ int main(){
 			mask = line.substr(7, line.size() - 7);
 		}
 		else if (cat == "mem"){
-			std::pair<int, int> ad_val = parse_mem(line);
+			std::pair<long, long> ad_val = parse_mem(line);
 
-			std::string bin_val = to_binary(ad_val.second);
-			std::string after_mask = apply_mask(bin_val, mask);
-			unsigned long long am_val = from_binary(after_mask);
+			std::vector<std::string> address_list;
+			while(!address_list.empty())
+				address_list.pop_back();
 
-			memory[ad_val.first] = am_val;
+			long address = ad_val.first;
+			std::string bin_ad = to_binary(address);
+			std::string after_mask = apply_mask(bin_ad, mask);
+
+			floating_addresses(after_mask, address_list);
+
+			for(auto ad : address_list){
+				memory[from_binary(ad)] = ad_val.second;
+			}
 		}
-
-
 	}
 
 	unsigned long long sum = 0;
 
 	for(auto address_value : memory){
+		std::cout << address_value.first << ":" << address_value.second << std::endl;
 		sum += address_value.second;
 	}
 	
