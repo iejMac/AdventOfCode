@@ -3,6 +3,29 @@
 #include <string>
 #include <fstream>
 
+int vec_lens(std::vector<std::vector<int> > vecs){
+	int lens = 0;
+	for(int i = 0 ; i < vecs.size() ; i++)
+		lens += vecs[i].size();
+	return lens;
+}
+
+int find_len_1(std::vector<std::vector<int> > vecs){
+	for(int i = 0 ; i < vecs.size() ; i++){
+		if(vecs[i].size() == 1)
+			return i;
+	}
+	return -1;
+}
+
+int find_val(int val, std::vector<int> vec){
+	for(int i = 0 ; i < vec.size() ; i++){
+		if (vec[i] == val)
+			return i;
+	}
+	return -1;
+}
+
 std::vector<std::pair<int, int> > parse_rule(std::string str){
 	
 	std::vector<std::pair<int, int> > rules;
@@ -43,11 +66,19 @@ std::vector<int> parse_csv(std::string str){
 	return values;
 }
 
-bool checks_out(int num, std::vector<std::pair<int, int> > rules){
-	for(int i = 0 ; i < rules.size() ; i++){
-		if((num >= rules[i].first) && (num <= rules[i].second))
+bool checks_out(int num, std::vector<std::pair<int, int> > rule){
+	for(int j = 0 ; j < rule.size() ; j++){
+		if((num >= rule[j].first) && (num <= rule[j].second))
 			return true;
 	}
+	return false;
+}
+
+
+bool checks_out_all(int num, std::vector<std::vector<std::pair<int, int> > > rules){
+	for(int i = 0 ; i < rules.size() ; i++)
+		if(checks_out(num, rules[i]))
+			return true;
 	return false;
 }
 
@@ -59,8 +90,7 @@ int main(){
 	std::string line;
 	bool writing_rules = true;
 	
-	std::vector<std::pair<int, int> > rules;
-	std::vector<std::pair<int, int> > cur_rules;
+	std::vector<std::vector<std::pair<int, int> > >rules;
 
 	std::vector<int> my_ticket;
 	std::vector<std::vector<int> > other_tickets;
@@ -71,9 +101,7 @@ int main(){
 			writing_rules = false;
 		
 		if (writing_rules == true){
-			cur_rules = parse_rule(line);
-			for(int i = 0 ; i < cur_rules.size() ; i++)
-				rules.push_back(cur_rules[i]);
+			rules.push_back(parse_rule(line));
 		}
 		else{
 			if(line == "your ticket:"){
@@ -92,7 +120,7 @@ int main(){
 	
 	for(int i = 0 ; i < other_tickets.size() ; i++){
 		for(int j = 0 ; j < other_tickets[i].size() ; j++){
-			if(!checks_out(other_tickets[i][j], rules)){
+			if(!checks_out_all(other_tickets[i][j], rules)){
 				other_tickets.erase(other_tickets.begin() + i);
 				i--;
 				break;
@@ -100,26 +128,59 @@ int main(){
 		}
 	}
 
-	std::vector<int> check_cols;
-	for(int i = 0 ; i < other_tickets[0].size() ; i++){
-		check_cols.push_back(i);
-	}
-
-	std::cout << check_cols.size() << std::endl;
-	
-	std::vector<std::pair<int, int> > relevant_rules;
-	for(int i = 0 ; i < 12 ; i++)
-		relevant_rules.push_back(rules[i]);
+	std::vector<int> possible_categories;
+	for(auto i = 0 ; i < rules.size() ; i++)
+		possible_categories.push_back(i);
+	std::vector<std::vector<int> > can_be(rules.size(), possible_categories);
 
 	for(int i = 0 ; i < other_tickets.size() ; i++){
-		for(int j = 0 ; j < check_cols.size() ; j++){
-			if(!checks_out(other_tickets[i][check_cols[j]], relevant_rules)){
-				check_cols.erase(check_cols.begin() + j);
-				j--;
+		for(int j = 0 ; j < other_tickets[i].size() ; j++){
+			for(int k = 0 ; k < can_be[j].size() ; k++){
+				if(!checks_out(other_tickets[i][j], rules[can_be[j][k]])){
+					can_be[j].erase(can_be[j].begin() + k);
+					k--;
+				}
 			}
-		}		
+		}
 	}
-	std::cout << check_cols.size() << std::endl;
+
+	int ind = -1;
+	int val = 0;
+
+	int found_val = -1;
+
+	// index = index in ticket ; value = index in menu
+	std::vector<int> cat_org(rules.size(), -1);
+
+	while(vec_lens(can_be) > 0){
+
+		ind = find_len_1(can_be);
+		val = can_be[ind][0];
+
+		cat_org[ind] = val;
+		
+		// Make it 0 len so find_len_1 doesnt pick it up
+		can_be[ind].erase(can_be[ind].begin());
+
+		for(int i = 0 ; i < can_be.size() ; i++){
+
+			found_val = find_val(val, can_be[i]);
+			if(found_val != -1){
+				can_be[i].erase(can_be[i].begin() + found_val);
+			}
+		}	
+	
+	}
+
+	long mul = 1;
+
+	for(auto i = 0 ; i < cat_org.size() ; i++){
+		if(cat_org[i] < 6){
+			mul *= my_ticket[i];
+		}
+	}
+
+	std::cout << mul << std::endl;
 
 	infile.close();
 
