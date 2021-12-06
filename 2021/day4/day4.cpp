@@ -41,18 +41,10 @@ bool hasWon(std::vector<std::vector<int>> board){
     }
     if(row_good || col_good)
       return true;
+    row_good=true;
+    col_good=true;
   }
   return false; 
-}
-
-std::vector<std::vector<int>>* findWinner(std::vector<std::vector<std::vector<int>>> boards){
-  for(auto& board : boards){
-    if(hasWon(board)){
-      printBoard(board);
-      return &board;
-    }
-  }
-  return nullptr; // no winners
 }
 
 void markBoard(std::vector<std::vector<int>>& board, int num){
@@ -67,6 +59,12 @@ void markBoard(std::vector<std::vector<int>>& board, int num){
 }
 
 int main(){
+
+  /*
+  ===================
+    Parsing code begins
+  ===================
+  */
 
 	std::ifstream infile;
 	infile.open("day_4_input.txt");
@@ -96,30 +94,35 @@ int main(){
     board.erase(board.begin() + board.size() - 1); //remove last empty row
   }
 
+  /*
+  ===================
+    Parsing code ends
+  ===================
+  */
 
   int tok;
   char burn_comma;
   std::stringstream tokens(fline);
 
-  std::vector<std::vector<int>>* winner = nullptr;
+  int won_after;
+  std::vector<std::vector<int>> last_winner;
 
   while(tokens >> tok){
     ++tok; // +1 again for our -1 marking
-    for(auto& board : boards){
-      markBoard(board, tok);
-      if(hasWon(board)){
-        winner = &board; 
-        break;
+    for(int i = 0 ; i < (int)boards.size() ; i++){
+      markBoard(boards[i], tok);
+      if(hasWon(boards[i])){
+        won_after = tok;
+        last_winner = std::vector<std::vector<int>>(boards[i]);
+        boards.erase(boards.begin() + i);
+        i--;
       }
     }
-    if(winner != nullptr)
-      break;
-
     tokens >> burn_comma;
   }
  
-  printBoard(*winner);
-  std::cout << getScore(*winner, tok) << std::endl;
+  printBoard(last_winner);
+  std::cout << getScore(last_winner, won_after) << std::endl;
   
 	infile.close();
 
